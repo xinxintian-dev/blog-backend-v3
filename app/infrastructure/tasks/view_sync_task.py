@@ -1,21 +1,21 @@
 import logging
-
+import redis
 from apscheduler.schedulers.background import BackgroundScheduler
 from app.infrastructure.persistence.database import MasterSessionLocal
-from app.infrastructure.persistence.redis_client import get_redis
+from app.infrastructure.persistence.redis_client import get_redis,redis_pool
 from app.infrastructure.persistence.models import Article as ArticleModel
 
 logger=logging.getLogger(__name__)
 
 def sync_view_to_mysql():
     """定时任务： 把Redis 里的浏览量刷入mysql"""
-    redis=get_redis()
+    redis_client = redis.Redis(connection_pool=redis_pool)
     db=MasterSessionLocal()
 
     try:
         #我们约定redis 里的key 格式为：article：views：{article_id}
         #用scan_iter 模糊匹配所有带有浏览量的 key
-        keys = redis.keys("article:view:*")
+        keys = list(redis_client.scan_iter(match="article:view:*"))
 
         if not keys :
             return
@@ -25,7 +25,7 @@ def sync_view_to_mysql():
             #解析出article_id
             article_id = int(key.split(":")[-1])
             #获取Redis 中的累加值
-            views_to_add= int(redis.get(key) or 0)
+            views_to_add= int(redis_client.get(key) or 0)
 
             if views_to_add > 0:
                 #更新MySQL 主库（注意：这里要用主库的Session）

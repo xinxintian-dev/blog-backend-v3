@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.api_deps.service.user import get_user_write_service
 from app.application.services.user_service import UserService
-from app.api.deps import get_user_write_service
 from app.api.schemas.user import  UserRegister,UserLogin  # Pydantic 模型放 schemas 下
 from typing import Annotated
 

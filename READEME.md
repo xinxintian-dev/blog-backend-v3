@@ -33,5 +33,71 @@
 1. 克隆项目并进入目录：
 
    ```bash
-   git clone https://github.com/你的用户名/blog-backend-v3.git
+   git clone https://github.com/xinxintian-dev/blog-backend-v3.git
    cd blog-backend-v3
+
+## 结构
+
+app
+├─ config.py
+│  
+├─api
+│  │  deps.py
+│  │  exception_handlers.py
+│  │  
+│  ├─routers
+│  │  │  article.py
+│  │  │  comment.py
+│  │  └─ user.py
+│  │
+│  ├─schemas
+│  │  │  article.py
+│  │  │  comment.py
+│  │  └─ user.py
+├─application
+│  └─services
+│  │   │  article_service.py
+│  │   │  comment_service.py
+│  │   └─ user_service.py
+│  │
+├─domain
+│  │  exceptions.py
+│  │  
+│  ├─article
+│  │  │  entity.py
+│  │  │  repository.py
+│  │
+│  ├─comment
+│  │  │  entity.py
+│  │  └─ repository.py
+│  │
+│  ├─notification
+│  │  └─  service.py
+│  │
+│  ├─user
+│  │  │  entity.py
+│  │  └─ repository.py
+│  │
+├─infrastructure
+│  ├─cache
+│  │  └─ redis_lock.py
+│  │
+│  ├─notification
+│  │  └─ celery_notification_impl.py
+│  │
+│  ├─persistence
+│  │  │  article_repo.py
+│  │  │  comment_repo.py
+│  │  │  database.py
+│  │  │  models.py
+│  │  │  redis_client.py
+│  │  └─ user_repo.py
+│  │
+│  ├─security
+│  │  │  hasher.py
+│  │  └─  jwt.py
+│  │
+│  └─tasks
+│      │  celery_app.py
+│      │  email_tasks.py
+│      └─  view_sync_task.py

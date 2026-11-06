@@ -1,0 +1,19 @@
+docker exec -it blog-mysql-master mysql -uroot -p123456 -e "SHOW MASTER STATUS\G;"
+MASTER:
+    SHOW MASTER STATUS\G;
+    mysql-bin.000004
+    Position: 4237
+
+docker exec -it blog-mysql-slave mysql -uroot -p123456
+SLAVE:
+  STOP SLAVE;
+    RESET SLAVE ALL;
+    CHANGE MASTER TO
+    MASTER_HOST='db-master',
+    MASTER_USER='repl',
+    MASTER_PASSWORD='123456',
+    MASTER_LOG_FILE='mysql-bin.000004', 
+    MASTER_LOG_POS=23067;
+  START SLAVE;
+  SHOW SLAVE STATUS\G
+

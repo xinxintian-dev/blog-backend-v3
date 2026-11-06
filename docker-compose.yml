@@ -5,24 +5,116 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DB_MASTER_URL=mysql+pymysql://root:123456@db:3306/blog
-      - DB_SLAVE_URL=mysql+pymysql://root:123456@db:3306/blog
+      # 注意：在 Docker 内部网络，通过服务名互相访问，不要用 localhost
+      - DB_MASTER_URL=mysql+pymysql://root:123456@db-master:3306/blog
+      - DB_SLAVE_URL=mysql+pymysql://root:123456@db-slave:3306/blog
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - JWT_SECRET_KEY=my-super-secret-key-123
     depends_on:
-      - db
+      - db-master
+      - db-slave
       - redis
-  
-  db:
+
+  # --- 主库 ---
+  db-master:
     image: mysql:8.0
+    container_name: blog-mysql-master
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: blog
     ports:
       - "3306:3306"
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+    volumes:
+      - master-data:/var/lib/mysql
+
+  # --- 从库 ---
+  db-slave:
+    image: mysql:8.0
+    container_name: blog-mysql-slave
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: blog
+    ports:
+      - "3307:3306" # 宿主机用 3307 访问从库
+    command:
+      - --server-id=2
+      - --relay-log=mysql-relay-bin
+    volumes:
+      - slave-data:/var/lib/mysql
 
   redis:
     image: redis:alpine
     ports:
       - "6379:6379"
+  
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight-data:/db  # 挂载数据卷，防止重启后配置丢失
+    depends_on:
+      - redis
+
+  my-kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"  # 确保宿主机端口映射到容器端口
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@my-kafka:9093'
+      
+      # 1. 确保监听器包含宿主机可访问的地址段
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093'
+      
+      # 2. 关键补充：告诉客户端用 localhost:9092 来连接（因为你的 Python 脚本在宿主机运行）
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9092'
+      
+      # 3. 安全协议映射
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+  
+  # --- 监控核心 ---
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # 需要自己准备这个配置文件
+      - prometheus-data:/prometheus # 持久化数据，避免重启丢失
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # 默认账号 admin，密码这里设置
+
+  # --- Kafka 的“翻译官” ---
+  kafka-exporter:
+    image: danielqsj/kafka-exporter
+    command: ["--kafka.server=my-kafka:9092"] # 注意：这里要用 Kafka 的服务名，不是 localhost
+    ports:
+      - "9308:9308"
+
+  # --- Redis 的“翻译官” ---
+  redis-exporter:
+    image: oliver006/redis_exporter
+    command: ["--redis.addr=redis://redis:6379"] # 同理，用 Redis 的服务名
+    ports:
+      - "9121:9121"
+
+volumes:
+  master-data:
+  slave-data:
+  prometheus-data:
+  redisinsight-data:

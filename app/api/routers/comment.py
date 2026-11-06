@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+from app.api_deps.service.comment import get_comment_read_service, get_comment_write_service
 from app.application.services.comment_service import CommentService
-from app.api.deps import get_comment_read_service,get_comment_write_service
 from app.api.schemas.comment import CommentCreate,CommentResponse  # Pydantic 模型放 schemas 下
 from typing import Annotated
 

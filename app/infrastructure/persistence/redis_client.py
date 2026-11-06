@@ -17,12 +17,12 @@ REDIS_URL=settings.REDIS_URL
 #     max_connections=20
 # )
 
-redis_pool=ConnectionPool.from_url(REDIS_URL,decode_response=True)
+redis_pool=ConnectionPool.from_url(REDIS_URL,decode_responses=True)
 
 #编写依赖注入函数
 
 def get_redis():
-    client=redis.Redis(ConnectionPool=redis_pool)
+    client=redis.Redis(connection_pool=redis_pool)
     try:
         yield client
     finally:

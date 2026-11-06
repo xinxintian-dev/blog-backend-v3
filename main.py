@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI
 from app.infrastructure.tasks.view_sync_task import start_scheduler
 from app.infrastructure.persistence.database import master_engine,Base

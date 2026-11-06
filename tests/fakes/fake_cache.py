@@ -22,4 +22,8 @@ class FakeCache:
 
     # 补上 incr 方法（如果有测浏览量递增的话）
     def incr(self, key):
-        self.data[key] = self.data.get(key, 0) + 1
+        self.data[key] = int(self.data.get(key, 0)) + 1
+
+     # 补上 expire 这个方法！
+    def expire(self, key, seconds):
+        return True # 假装设置成功
